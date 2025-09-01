@@ -72,7 +72,16 @@ function initMarkers() {
 function addMouseControls() {
     const canvas = renderer.domElement;
     
+    function isOverButton(event) {
+        const buttonRect = document.querySelector('.linkedin-btn').getBoundingClientRect();
+        return event.clientX >= buttonRect.left && 
+               event.clientX <= buttonRect.right && 
+               event.clientY >= buttonRect.top && 
+               event.clientY <= buttonRect.bottom;
+    }
+    
     canvas.addEventListener('mousedown', (event) => {
+        if (isOverButton(event)) return;
         isDragging = true;
         previousMousePosition = { x: event.clientX, y: event.clientY };
         canvas.style.cursor = 'grabbing';
@@ -80,6 +89,7 @@ function addMouseControls() {
     
     canvas.addEventListener('mousemove', (event) => {
         if (!isDragging) return;
+        if (isOverButton(event)) return;
         
         const deltaMove = {
             x: event.clientX - previousMousePosition.x,
