@@ -3,6 +3,12 @@ let scene, camera, renderer, globe, markers = [];
 let recoveredCount = 0;
 let nextMarkerTime = 0;
 
+// Mouse controls
+let isDragging = false;
+let previousMousePosition = { x: 0, y: 0 };
+let rotationVelocity = { x: 0, y: 0 };
+let autoRotationSpeed = 0.002;
+
 function init() {
     // Scene setup
     scene = new THREE.Scene();
@@ -27,6 +33,9 @@ function init() {
     
     // Start counter animation
     animateCounter();
+    
+    // Add mouse controls
+    addMouseControls();
 }
 
 function createGlobe() {
@@ -60,49 +69,132 @@ function initMarkers() {
     nextMarkerTime = Date.now() + 1000; // 1 second
 }
 
-function createMarker() {
-    // Create marker geometry - a small sphere for visibility
-    const markerGeometry = new THREE.SphereGeometry(0.04, 8, 8);
-    const markerMaterial = new THREE.MeshBasicMaterial({
-        color: 0x00ff44,
-        transparent: true,
-        opacity: 1
+function addMouseControls() {
+    const canvas = renderer.domElement;
+    
+    canvas.addEventListener('mousedown', (event) => {
+        isDragging = true;
+        previousMousePosition = { x: event.clientX, y: event.clientY };
+        canvas.style.cursor = 'grabbing';
     });
     
-    const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+    canvas.addEventListener('mousemove', (event) => {
+        if (!isDragging) return;
+        
+        const deltaMove = {
+            x: event.clientX - previousMousePosition.x,
+            y: event.clientY - previousMousePosition.y
+        };
+        
+        // Update rotation velocity based on mouse movement
+        rotationVelocity.x = deltaMove.y * 0.005;
+        rotationVelocity.y = deltaMove.x * 0.005;
+        
+        previousMousePosition = { x: event.clientX, y: event.clientY };
+    });
     
+    canvas.addEventListener('mouseup', () => {
+        isDragging = false;
+        canvas.style.cursor = 'grab';
+    });
+    
+    canvas.addEventListener('mouseleave', () => {
+        isDragging = false;
+        canvas.style.cursor = 'grab';
+    });
+    
+    // Set initial cursor
+    canvas.style.cursor = 'grab';
+}
+
+function createMarker() {
     // Position marker on globe surface
     const phi = Math.acos(-1 + (2 * Math.random()));
     const theta = Math.random() * 2 * Math.PI;
     
-    // Calculate position on globe surface with slight offset
-    const radius = 2.6;
-    const x = radius * Math.sin(phi) * Math.cos(theta);
-    const y = radius * Math.sin(phi) * Math.sin(theta);
-    const z = radius * Math.cos(phi);
+    // Calculate base position on globe surface
+    const baseRadius = 2.52;
+    const baseX = baseRadius * Math.sin(phi) * Math.cos(theta);
+    const baseY = baseRadius * Math.sin(phi) * Math.sin(theta);
+    const baseZ = baseRadius * Math.cos(phi);
     
-    marker.position.set(x, y, z);
+    // Create vertical line geometry going upward from the surface
+    const lineHeight = 0.3 + Math.random() * 0.4; // Random height between 0.3 and 0.7
+    const points = [];
+    
+    // Base point on globe surface
+    points.push(new THREE.Vector3(baseX, baseY, baseZ));
+    
+    // Top point extending outward from globe center
+    const direction = new THREE.Vector3(baseX, baseY, baseZ).normalize();
+    const topPoint = new THREE.Vector3(baseX, baseY, baseZ).add(direction.multiplyScalar(lineHeight));
+    points.push(topPoint);
+    
+    // Create line geometry
+    const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+    const lineMaterial = new THREE.LineBasicMaterial({
+        color: 0x00ff44,
+        transparent: true,
+        opacity: 1,
+        linewidth: 2
+    });
+    
+    const marker = new THREE.Line(lineGeometry, lineMaterial);
+    
+    // Add a small glowing point at the top
+    const pointGeometry = new THREE.SphereGeometry(0.02, 8, 8);
+    const pointMaterial = new THREE.MeshBasicMaterial({
+        color: 0x44ff66,
+        transparent: true,
+        opacity: 1
+    });
+    
+    const topPoint3D = new THREE.Mesh(pointGeometry, pointMaterial);
+    topPoint3D.position.copy(topPoint);
+    
+    // Create a group to hold both line and point
+    const markerGroup = new THREE.Group();
+    markerGroup.add(marker);
+    markerGroup.add(topPoint3D);
     
     // Store data for animation and rotation
-    marker.userData = {
+    markerGroup.userData = {
         phi: phi,
         theta: theta,
         spawnTime: Date.now(),
-        lifetime: 5000, // 5 seconds
-        animPhase: 0
+        lifetime: 8000, // 8 seconds for better visibility
+        animPhase: 0,
+        baseRadius: baseRadius,
+        lineHeight: lineHeight,
+        topPoint: topPoint3D,
+        line: marker
     };
     
-    markers.push(marker);
-    scene.add(marker);
-    
-    console.log('Created marker at:', x, y, z); // Debug log
+    markers.push(markerGroup);
+    scene.add(markerGroup);
 }
 
 function animate() {
     requestAnimationFrame(animate);
     
-    // Rotate globe
-    globe.rotation.y += 0.002;
+    // Handle globe rotation
+    if (isDragging) {
+        // Apply manual rotation while dragging
+        globe.rotation.x += rotationVelocity.x;
+        globe.rotation.y += rotationVelocity.y;
+        // Dampen the velocity
+        rotationVelocity.x *= 0.95;
+        rotationVelocity.y *= 0.95;
+    } else {
+        // Auto rotation when not dragging
+        globe.rotation.y += autoRotationSpeed;
+        // Apply momentum from manual rotation
+        globe.rotation.x += rotationVelocity.x;
+        globe.rotation.y += rotationVelocity.y;
+        // Gradually return to auto rotation
+        rotationVelocity.x *= 0.98;
+        rotationVelocity.y *= 0.98;
+    }
     
     const currentTime = Date.now();
     
@@ -114,45 +206,56 @@ function animate() {
     }
     
     // Update existing markers
-    markers.forEach((marker, index) => {
-        const age = currentTime - marker.userData.spawnTime;
-        const progress = age / marker.userData.lifetime;
+    markers.forEach((markerGroup, index) => {
+        const age = currentTime - markerGroup.userData.spawnTime;
+        const progress = age / markerGroup.userData.lifetime;
         
         if (progress >= 1) {
             // Remove expired marker
-            scene.remove(marker);
+            scene.remove(markerGroup);
             markers.splice(index, 1);
             return;
         }
         
         // Rotate marker position with globe
-        const currentTheta = marker.userData.theta + globe.rotation.y;
-        const radius = 2.6;
-        const x = radius * Math.sin(marker.userData.phi) * Math.cos(currentTheta);
-        const y = radius * Math.sin(marker.userData.phi) * Math.sin(currentTheta);
-        const z = radius * Math.cos(marker.userData.phi);
+        const currentTheta = markerGroup.userData.theta + globe.rotation.y;
+        const baseRadius = markerGroup.userData.baseRadius;
+        const baseX = baseRadius * Math.sin(markerGroup.userData.phi) * Math.cos(currentTheta);
+        const baseY = baseRadius * Math.sin(markerGroup.userData.phi) * Math.sin(currentTheta);
+        const baseZ = baseRadius * Math.cos(markerGroup.userData.phi);
         
-        marker.position.set(x, y, z);
+        // Update line geometry
+        const direction = new THREE.Vector3(baseX, baseY, baseZ).normalize();
+        const topPoint = new THREE.Vector3(baseX, baseY, baseZ).add(direction.multiplyScalar(markerGroup.userData.lineHeight));
+        
+        const points = [
+            new THREE.Vector3(baseX, baseY, baseZ),
+            topPoint
+        ];
+        
+        markerGroup.userData.line.geometry.setFromPoints(points);
+        markerGroup.userData.topPoint.position.copy(topPoint);
         
         // Animate opacity - fade in, stay, fade out
         let opacity;
-        if (progress < 0.2) {
+        if (progress < 0.15) {
             // Fade in
-            opacity = progress / 0.2;
-        } else if (progress > 0.8) {
+            opacity = progress / 0.15;
+        } else if (progress > 0.85) {
             // Fade out
-            opacity = (1 - progress) / 0.2;
+            opacity = (1 - progress) / 0.15;
         } else {
             // Stay visible
             opacity = 1;
         }
         
-        marker.material.opacity = opacity * 0.6;
+        markerGroup.userData.line.material.opacity = opacity * 0.8;
+        markerGroup.userData.topPoint.material.opacity = opacity * 0.9;
         
-        // Subtle pulse effect
-        marker.userData.animPhase += 0.03;
-        const pulse = 1 + Math.sin(marker.userData.animPhase) * 0.1;
-        marker.scale.set(pulse, pulse, pulse);
+        // Subtle pulse effect on the top point
+        markerGroup.userData.animPhase += 0.04;
+        const pulse = 1 + Math.sin(markerGroup.userData.animPhase) * 0.2;
+        markerGroup.userData.topPoint.scale.set(pulse, pulse, pulse);
     });
     
     renderer.render(scene, camera);
