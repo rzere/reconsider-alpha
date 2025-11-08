@@ -1,291 +1,274 @@
-// Three.js Globe Setup
-let scene, camera, renderer, globe, markers = [];
-let recoveredCount = 0;
-let nextMarkerTime = 0;
+// WebGL Perlin Noise Setup - Based on TypeGPU Perlin Noise example
+let gl, program, timeUniformLocation, resolutionUniformLocation, gridSizeUniformLocation, sharpnessUniformLocation;
+let animationFrameId;
 
-// Mouse controls
-let isDragging = false;
-let previousMousePosition = { x: 0, y: 0 };
-let rotationVelocity = { x: 0, y: 0 };
-let autoRotationSpeed = 0.002;
+// Vertex shader source - simple full-screen quad
+const vertexShaderSource = `
+    attribute vec2 a_position;
+    
+    void main() {
+        gl_Position = vec4(a_position, 0.0, 1.0);
+    }
+`;
+
+// Fragment shader source with 3D Perlin Noise implementation (inspired by TypeGPU)
+const fragmentShaderSource = `
+    precision highp float;
+    
+    uniform float u_time;
+    uniform vec2 u_resolution;
+    uniform float u_gridSize;
+    uniform float u_sharpness;
+    
+    // Hash function for pseudo-random gradient vectors
+    vec3 hash(vec3 p) {
+        p = vec3(
+            dot(p, vec3(127.1, 311.7, 74.7)),
+            dot(p, vec3(269.5, 183.3, 246.1)),
+            dot(p, vec3(113.5, 271.9, 124.6))
+        );
+        return fract(sin(p) * 43758.5453123);
+    }
+    
+    // Smooth interpolation
+    float smoothstep5(float t) {
+        return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+    }
+    
+    // 3D Perlin Noise
+    float perlin3d(vec3 p) {
+        vec3 i = floor(p);
+        vec3 f = fract(p);
+        
+        // Smooth interpolation
+        vec3 u = f * f * (3.0 - 2.0 * f);
+        // Better smoothstep
+        vec3 u2 = vec3(
+            smoothstep5(f.x),
+            smoothstep5(f.y),
+            smoothstep5(f.z)
+        );
+        
+        // Get gradient vectors at 8 corners of cube
+        vec3 g000 = hash(i + vec3(0.0, 0.0, 0.0)) * 2.0 - 1.0;
+        vec3 g100 = hash(i + vec3(1.0, 0.0, 0.0)) * 2.0 - 1.0;
+        vec3 g010 = hash(i + vec3(0.0, 1.0, 0.0)) * 2.0 - 1.0;
+        vec3 g110 = hash(i + vec3(1.0, 1.0, 0.0)) * 2.0 - 1.0;
+        vec3 g001 = hash(i + vec3(0.0, 0.0, 1.0)) * 2.0 - 1.0;
+        vec3 g101 = hash(i + vec3(1.0, 0.0, 1.0)) * 2.0 - 1.0;
+        vec3 g011 = hash(i + vec3(0.0, 1.0, 1.0)) * 2.0 - 1.0;
+        vec3 g111 = hash(i + vec3(1.0, 1.0, 1.0)) * 2.0 - 1.0;
+        
+        // Distance vectors from corners
+        vec3 d000 = f - vec3(0.0, 0.0, 0.0);
+        vec3 d100 = f - vec3(1.0, 0.0, 0.0);
+        vec3 d010 = f - vec3(0.0, 1.0, 0.0);
+        vec3 d110 = f - vec3(1.0, 1.0, 0.0);
+        vec3 d001 = f - vec3(0.0, 0.0, 1.0);
+        vec3 d101 = f - vec3(1.0, 0.0, 1.0);
+        vec3 d011 = f - vec3(0.0, 1.0, 1.0);
+        vec3 d111 = f - vec3(1.0, 1.0, 1.0);
+        
+        // Dot products
+        float n000 = dot(g000, d000);
+        float n100 = dot(g100, d100);
+        float n010 = dot(g010, d010);
+        float n110 = dot(g110, d110);
+        float n001 = dot(g001, d001);
+        float n101 = dot(g101, d101);
+        float n011 = dot(g011, d011);
+        float n111 = dot(g111, d111);
+        
+        // Trilinear interpolation
+        float x00 = mix(n000, n100, u2.x);
+        float x10 = mix(n010, n110, u2.x);
+        float x01 = mix(n001, n101, u2.x);
+        float x11 = mix(n011, n111, u2.x);
+        
+        float y0 = mix(x00, x10, u2.y);
+        float y1 = mix(x01, x11, u2.y);
+        
+        return mix(y0, y1, u2.z);
+    }
+    
+    // Exponential sharpening function (like TypeGPU)
+    float exponentialSharpen(float n, float sharpness) {
+        return sign(n) * pow(abs(n), 1.0 - sharpness);
+    }
+    
+    void main() {
+        vec2 uv = gl_FragCoord.xy / u_resolution.xy;
+        
+        // Scale by grid size (like TypeGPU)
+        vec2 p = uv * u_gridSize;
+        
+        // Add time as third dimension (loops every 10 seconds like TypeGPU DEPTH=10)
+        float time = mod(u_time * 0.0002, 10.0);
+        vec3 pos = vec3(p, time);
+        
+        // Sample 3D Perlin noise
+        float n = perlin3d(pos);
+        
+        // Apply sharpening
+        float sharp = exponentialSharpen(n, u_sharpness);
+        
+        // Map to 0-1 range
+        float n01 = sharp * 0.5 + 0.5;
+        
+        // Gradient map (like TypeGPU: dark blue to light pink)
+        vec3 human = vec3(1.0, 0.84, 0.65);  // #FFD6A5
+        vec3 ai    = vec3(0.23, 0.31, 0.48);  // #3A4E7A
+        vec3 color = mix(ai, human, n01);
+        
+        gl_FragColor = vec4(color, 1.0);
+    }
+`;
+
+function createShader(gl, type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        const error = gl.getShaderInfoLog(shader);
+        console.error('Shader compilation error:', error);
+        console.error('Shader source:', source);
+        gl.deleteShader(shader);
+        return null;
+    }
+    
+    return shader;
+}
+
+function createProgram(gl, vertexShader, fragmentShader) {
+    const program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        const error = gl.getProgramInfoLog(program);
+        console.error('Program linking error:', error);
+        gl.deleteProgram(program);
+        return null;
+    }
+    
+    return program;
+}
 
 function init() {
-    // Scene setup
-    scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const container = document.getElementById('canvas-container');
     
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x000000, 0);
-    document.getElementById('canvas-container').appendChild(renderer.domElement);
-
-    // Create globe
-    createGlobe();
-    
-    // Initialize marker system
-    initMarkers();
-    
-    // Position camera
-    camera.position.z = 5;
-    
-    // Start animation loop
-    animate();
-    
-    // Start counter animation
-    animateCounter();
-    
-    // Add mouse controls
-    addMouseControls();
-}
-
-function createGlobe() {
-    const geometry = new THREE.SphereGeometry(2.5, 64, 32);
-    
-    // Create a wireframe material with minimal green
-    const material = new THREE.MeshBasicMaterial({
-        color: 0x004422,
-        wireframe: true,
-        opacity: 0.2,
-        transparent: true
-    });
-    
-    globe = new THREE.Mesh(geometry, material);
-    scene.add(globe);
-    
-    // Add inner solid sphere for depth
-    const solidGeometry = new THREE.SphereGeometry(2.48, 32, 16);
-    const solidMaterial = new THREE.MeshBasicMaterial({
-        color: 0x000000,
-        opacity: 0.05,
-        transparent: true
-    });
-    
-    const solidGlobe = new THREE.Mesh(solidGeometry, solidMaterial);
-    scene.add(solidGlobe);
-}
-
-function initMarkers() {
-    // Set up first marker spawn time - start immediately for testing
-    nextMarkerTime = Date.now() + 1000; // 1 second
-}
-
-function addMouseControls() {
-    const canvas = renderer.domElement;
-    
-    function isOverButton(event) {
-        const buttonRect = document.querySelector('.linkedin-btn').getBoundingClientRect();
-        return event.clientX >= buttonRect.left && 
-               event.clientX <= buttonRect.right && 
-               event.clientY >= buttonRect.top && 
-               event.clientY <= buttonRect.bottom;
+    if (!container) {
+        console.error('Canvas container not found');
+        return;
     }
     
-    canvas.addEventListener('mousedown', (event) => {
-        if (isOverButton(event)) return;
-        isDragging = true;
-        previousMousePosition = { x: event.clientX, y: event.clientY };
-        canvas.style.cursor = 'grabbing';
-    });
+    // Create canvas element inside the container
+    const canvas = document.createElement('canvas');
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.display = 'block';
     
-    canvas.addEventListener('mousemove', (event) => {
-        if (!isDragging) return;
-        if (isOverButton(event)) return;
-        
-        const deltaMove = {
-            x: event.clientX - previousMousePosition.x,
-            y: event.clientY - previousMousePosition.y
-        };
-        
-        // Update rotation velocity based on mouse movement
-        rotationVelocity.x = deltaMove.y * 0.005;
-        rotationVelocity.y = deltaMove.x * 0.005;
-        
-        previousMousePosition = { x: event.clientX, y: event.clientY };
-    });
+    container.appendChild(canvas);
     
-    canvas.addEventListener('mouseup', () => {
-        isDragging = false;
-        canvas.style.cursor = 'grab';
-    });
+    // Try to get WebGL context
+    gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
     
-    canvas.addEventListener('mouseleave', () => {
-        isDragging = false;
-        canvas.style.cursor = 'grab';
-    });
-    
-    // Set initial cursor
-    canvas.style.cursor = 'grab';
-}
-
-function createMarker() {
-    // Position marker on globe surface
-    const phi = Math.acos(-1 + (2 * Math.random()));
-    const theta = Math.random() * 2 * Math.PI;
-    
-    // Calculate base position on globe surface
-    const baseRadius = 2.52;
-    const baseX = baseRadius * Math.sin(phi) * Math.cos(theta);
-    const baseY = baseRadius * Math.sin(phi) * Math.sin(theta);
-    const baseZ = baseRadius * Math.cos(phi);
-    
-    // Create vertical line geometry going upward from the surface
-    const lineHeight = 0.3 + Math.random() * 0.4; // Random height between 0.3 and 0.7
-    const points = [];
-    
-    // Base point on globe surface
-    points.push(new THREE.Vector3(baseX, baseY, baseZ));
-    
-    // Top point extending outward from globe center
-    const direction = new THREE.Vector3(baseX, baseY, baseZ).normalize();
-    const topPoint = new THREE.Vector3(baseX, baseY, baseZ).add(direction.multiplyScalar(lineHeight));
-    points.push(topPoint);
-    
-    // Create line geometry
-    const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
-    const lineMaterial = new THREE.LineBasicMaterial({
-        color: 0x00ff44,
-        transparent: true,
-        opacity: 1,
-        linewidth: 2
-    });
-    
-    const marker = new THREE.Line(lineGeometry, lineMaterial);
-    
-    // Add a small glowing point at the top
-    const pointGeometry = new THREE.SphereGeometry(0.02, 8, 8);
-    const pointMaterial = new THREE.MeshBasicMaterial({
-        color: 0x44ff66,
-        transparent: true,
-        opacity: 1
-    });
-    
-    const topPoint3D = new THREE.Mesh(pointGeometry, pointMaterial);
-    topPoint3D.position.copy(topPoint);
-    
-    // Create a group to hold both line and point
-    const markerGroup = new THREE.Group();
-    markerGroup.add(marker);
-    markerGroup.add(topPoint3D);
-    
-    // Store data for animation and rotation
-    markerGroup.userData = {
-        phi: phi,
-        theta: theta,
-        spawnTime: Date.now(),
-        lifetime: 8000, // 8 seconds for better visibility
-        animPhase: 0,
-        baseRadius: baseRadius,
-        lineHeight: lineHeight,
-        topPoint: topPoint3D,
-        line: marker
-    };
-    
-    markers.push(markerGroup);
-    scene.add(markerGroup);
-}
-
-function animate() {
-    requestAnimationFrame(animate);
-    
-    // Handle globe rotation
-    if (isDragging) {
-        // Apply manual rotation while dragging
-        globe.rotation.x += rotationVelocity.x;
-        globe.rotation.y += rotationVelocity.y;
-        // Dampen the velocity
-        rotationVelocity.x *= 0.95;
-        rotationVelocity.y *= 0.95;
-    } else {
-        // Auto rotation when not dragging
-        globe.rotation.y += autoRotationSpeed;
-        // Apply momentum from manual rotation
-        globe.rotation.x += rotationVelocity.x;
-        globe.rotation.y += rotationVelocity.y;
-        // Gradually return to auto rotation
-        rotationVelocity.x *= 0.98;
-        rotationVelocity.y *= 0.98;
+    if (!gl) {
+        console.error('WebGL not supported');
+        container.innerHTML = '<div style="color: white; padding: 20px;">WebGL not supported in your browser</div>';
+        return;
     }
     
-    const currentTime = Date.now();
+    // Create shaders
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
     
-    // Spawn new markers occasionally
-    if (currentTime >= nextMarkerTime) {
-        createMarker();
-        // Schedule next marker spawn (3-8 seconds)
-        nextMarkerTime = currentTime + Math.random() * 5000 + 3000;
+    if (!vertexShader || !fragmentShader) {
+        console.error('Failed to create shaders');
+        return;
     }
     
-    // Update existing markers
-    markers.forEach((markerGroup, index) => {
-        const age = currentTime - markerGroup.userData.spawnTime;
-        const progress = age / markerGroup.userData.lifetime;
+    // Create program
+    program = createProgram(gl, vertexShader, fragmentShader);
+    
+    if (!program) {
+        console.error('Failed to create program');
+        return;
+    }
+    
+    // Create full-screen quad
+    const positionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+        -1, -1,
+         1, -1,
+        -1,  1,
+        -1,  1,
+         1, -1,
+         1,  1,
+    ]), gl.STATIC_DRAW);
+    
+    // Get attribute and uniform locations
+    const positionLocation = gl.getAttribLocation(program, 'a_position');
+    timeUniformLocation = gl.getUniformLocation(program, 'u_time');
+    resolutionUniformLocation = gl.getUniformLocation(program, 'u_resolution');
+    gridSizeUniformLocation = gl.getUniformLocation(program, 'u_gridSize');
+    sharpnessUniformLocation = gl.getUniformLocation(program, 'u_sharpness');
+    
+    // Check if uniforms are found
+    if (timeUniformLocation === -1 || resolutionUniformLocation === -1 || 
+        gridSizeUniformLocation === -1 || sharpnessUniformLocation === -1) {
+        console.error('Uniform location not found');
+    }
+    
+    // Set up rendering
+    function render(time) {
+        // Resize canvas
+        const displayWidth = canvas.clientWidth;
+        const displayHeight = canvas.clientHeight;
         
-        if (progress >= 1) {
-            // Remove expired marker
-            scene.remove(markerGroup);
-            markers.splice(index, 1);
-            return;
+        if (canvas.width !== displayWidth || canvas.height !== displayHeight) {
+            canvas.width = displayWidth;
+            canvas.height = displayHeight;
+            gl.viewport(0, 0, displayWidth, displayHeight);
         }
         
-        // Rotate marker position with globe
-        const currentTheta = markerGroup.userData.theta + globe.rotation.y;
-        const baseRadius = markerGroup.userData.baseRadius;
-        const baseX = baseRadius * Math.sin(markerGroup.userData.phi) * Math.cos(currentTheta);
-        const baseY = baseRadius * Math.sin(markerGroup.userData.phi) * Math.sin(currentTheta);
-        const baseZ = baseRadius * Math.cos(markerGroup.userData.phi);
+        // Clear canvas
+        gl.clearColor(0.0, 0.0, 0.0, 0.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
         
-        // Update line geometry
-        const direction = new THREE.Vector3(baseX, baseY, baseZ).normalize();
-        const topPoint = new THREE.Vector3(baseX, baseY, baseZ).add(direction.multiplyScalar(markerGroup.userData.lineHeight));
+        // Use program
+        gl.useProgram(program);
         
-        const points = [
-            new THREE.Vector3(baseX, baseY, baseZ),
-            topPoint
-        ];
+        // Set uniforms
+        gl.uniform1f(timeUniformLocation, time);
+        gl.uniform2f(resolutionUniformLocation, displayWidth, displayHeight);
+        gl.uniform1f(gridSizeUniformLocation, 4.0); // Default grid size like TypeGPU
+        gl.uniform1f(sharpnessUniformLocation, 0.5); // Default sharpness
         
-        markerGroup.userData.line.geometry.setFromPoints(points);
-        markerGroup.userData.topPoint.position.copy(topPoint);
+        // Set up position attribute
+        gl.enableVertexAttribArray(positionLocation);
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
         
-        // Animate opacity - fade in, stay, fade out
-        let opacity;
-        if (progress < 0.15) {
-            // Fade in
-            opacity = progress / 0.15;
-        } else if (progress > 0.85) {
-            // Fade out
-            opacity = (1 - progress) / 0.15;
-        } else {
-            // Stay visible
-            opacity = 1;
-        }
+        // Draw
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
         
-        markerGroup.userData.line.material.opacity = opacity * 0.8;
-        markerGroup.userData.topPoint.material.opacity = opacity * 0.9;
-        
-        // Subtle pulse effect on the top point
-        markerGroup.userData.animPhase += 0.04;
-        const pulse = 1 + Math.sin(markerGroup.userData.animPhase) * 0.2;
-        markerGroup.userData.topPoint.scale.set(pulse, pulse, pulse);
-    });
+        animationFrameId = requestAnimationFrame(render);
+    }
     
-    renderer.render(scene, camera);
-}
-
-function animateCounter() {
-    // Remove counter animation - no longer needed
+    // Start animation
+    animationFrameId = requestAnimationFrame(render);
 }
 
 // Handle window resize
 function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    // Canvas resize is handled in the render loop
 }
 
 window.addEventListener('resize', onWindowResize);
 
 // Initialize when page loads
 window.addEventListener('load', init);
-
-// Particle system for extra visual flair
-// Removed particles for minimal aesthetic

@@ -1,39 +1,98 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reconsider AI</title>
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
-    <script defer src="https://cloud.umami.is/script.js" data-website-id="7868f70a-1b91-42b3-bab5-d54534b88fd5"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reconsider AI ~ human authenticity verification</title>
+  <meta name="description" content="reconsider ai verifies human authenticity in the age of ai — trust signals for real creators, teams, and platforms." />
+  <link rel="canonical" href="https://reconsider.ai/" />
+
+  <!-- Brand: human ↔ ai palette -->
+  <meta name="theme-color" content="#0E0E14" />
+  <style>
+    :root{
+      --bg:#0E0E14;           /* deep canvas */
+      --text:#F8F8F8;         /* high-contrast text */
+      --ai:#3A4E7A;           /* machine cold */
+      --human:#FFD6A5;        /* human warmth */
+      --accent:#A8FF60;       /* truth glow (verified) */
+    }
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg); color:var(--text);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    #canvas-container{position:fixed; inset:0; overflow:hidden; pointer-events:none; z-index:1}
+    .overlay{position:relative; min-height:100dvh; display:grid; place-items:center; z-index:2; pointer-events:auto}
+    .main-content{ text-align:center; padding:4rem 1.25rem }
+    .logo h1{ margin:0; letter-spacing:-0.02em; font-size:clamp(2rem,6vw,4rem) }
+    .logo h1 span{ background:linear-gradient(120deg,var(--ai),var(--human)); -webkit-background-clip:text; background-clip:text; color:transparent }
+    .sub{ opacity:.8; max-width:48rem; margin:.75rem auto 0; font-size:1.1rem }
+    .linkedin-btn{
+      position:fixed; right:1rem; top:1rem;
+      display:inline-flex; align-items:center; gap:.5rem;
+      padding:.6rem .8rem; border-radius:999px;
+      background:rgba(255,214,165,.12); color:var(--text);
+      text-decoration:none; backdrop-filter: blur(6px);
+      border:1px solid rgba(255,214,165,.25);
+      transition:transform .2s ease, background .2s ease;
+      z-index:100; pointer-events:auto;
+    }
+    .linkedin-btn:hover{ transform:translateY(-1px); background:rgba(255,214,165,.18) }
+    .footer{ position:fixed; left:0; right:0; bottom:0; padding:1rem; text-align:center; opacity:.6; font-size:.9rem; z-index:3; pointer-events:auto }
+    noscript{ position:fixed; inset:auto 0 0 0; background:#111; color:#fff; padding:1rem; text-align:center }
+  </style>
+
+  <!-- Font: preload + load -->
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&display=swap">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <!-- Favicons -->
+  <link rel="icon" href="favicon.ico">
+
+  <!-- Open Graph / Twitter -->
+  <meta property="og:title" content="Reconsider AI — human authenticity verification" />
+  <meta property="og:description" content="trust the human. detect the artificial. reconsider ai verifies authenticity at scale." />
+  <meta property="og:url" content="https://reconsider.ai/" />
+  <meta property="og:image" content="https://reconsider.ai/og.png" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Reconsider AI — human authenticity verification" />
+  <meta name="twitter:description" content="trust the human. detect the artificial." />
+  <meta name="twitter:image" content="https://reconsider.ai/og.png" />
+
+  <!-- Analytics -->
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="7868f70a-1b91-42b3-bab5-d54534b88fd5"></script>
 </head>
 <body>
-    <div id="canvas-container"></div>
-    
-    <div class="overlay">
-        <main class="main-content">
-            <div class="logo">
-                <h1>reconsider.ai</h1>
-            </div>
-            
-        </main>
+  <div id="canvas-container" aria-hidden="true"></div>
 
-        <a href="https://linkedin.com/in/rzere" target="_blank" class="linkedin-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-            </svg>
-        </a>
-        
-        <footer class="footer">
-            © 2025 reconsider.ai
-        </footer>
-    </div>
+  <a href="https://www.linkedin.com/company/reconsiderai/"
+     target="_blank" rel="noopener noreferrer"
+     class="linkedin-btn" aria-label="Reconsider AI on LinkedIn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+    </svg>
+  </a>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="script.js"></script>
+  <header class="sr-only" aria-hidden="true">reconsider ai</header>
+  <main class="overlay" role="main">
+    <section class="main-content" aria-label="hero">
+      <div class="logo">
+        <h1><span>reconsider ai</span></h1>
+        <p class="sub">human authenticity verification for the age of ai</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">© 2025 reconsider.ai</footer>
+
+  <noscript>javascript is required to render the live authenticity field.</noscript>
+
+  <!-- Your shader/app -->
+  <script src="script.js" defer></script>
 </body>
 </html>
