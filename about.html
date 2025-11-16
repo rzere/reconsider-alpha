@@ -106,30 +106,64 @@
             padding: 120px 0;
             text-align: center;
         }
-
-        .hero h1 {
-            font-size: 64px;
+        
+        .hero-lines {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .hero-line {
+            opacity: 0;
+            transform: translateY(10px);
+            animation: heroFadeUp 0.7s ease-out forwards;
+        }
+        
+        .hero-line-1,
+        .hero-line-2 {
+            font-size: 56px;
             font-weight: 400;
-            line-height: 1.1;
-            margin-bottom: 32px;
             letter-spacing: -0.03em;
+            line-height: 1.05;
             color: var(--text);
         }
-
-        .hero .subtitle {
+        
+        .hero-line-1 {
+            animation-delay: 0s;
+        }
+        
+        .hero-line-2 {
+            animation-delay: 0.12s;
+        }
+        
+        .hero-line-3 {
             font-size: 20px;
             color: var(--text-dim);
-            max-width: 600px;
-            margin: 0 auto 48px;
+            max-width: 640px;
             line-height: 1.6;
+            animation-delay: 0.24s;
         }
-
-        .hero .meta {
+        
+        .hero-line-4 {
             font-size: 12px;
             color: var(--text-dim);
             text-transform: uppercase;
-            letter-spacing: 0.15em;
+            letter-spacing: 0.16em;
             font-weight: 500;
+            margin-top: 8px;
+            animation-delay: 0.36s;
+        }
+        
+        @keyframes heroFadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* Sections */
@@ -303,13 +337,26 @@
 
         /* Vision */
         .vision-statement {
-            font-size: 48px;
-            font-weight: 400;
-            line-height: 1.3;
             text-align: center;
-            margin: 60px 0;
-            letter-spacing: -0.02em;
+            margin: 60px 0 40px;
+        }
+        
+        .vision-main {
+            font-size: 40px;
+            font-weight: 400;
+            line-height: 1.2;
+            letter-spacing: -0.03em;
             color: var(--text);
+            margin: 0 0 16px 0;
+        }
+        
+        .vision-sub {
+            font-size: 18px;
+            font-weight: 400;
+            line-height: 1.6;
+            color: var(--text-dim);
+            max-width: 520px;
+            margin: 0 auto;
         }
 
         /* CTA */
@@ -322,6 +369,33 @@
             font-size: 24px;
             margin-bottom: 32px;
             font-weight: 400;
+        }
+        
+        .cta-meta {
+            color: var(--text-dim);
+            margin-bottom: 28px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+        }
+        
+        .cta-list {
+            list-style: none;
+            margin: 0 auto 40px;
+            padding: 0;
+            max-width: 420px;
+            text-align: left;
+        }
+        
+        .cta-list li {
+            padding: 10px 0;
+            color: var(--text-dim);
+            font-size: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .cta-list li:last-child {
+            border-bottom: none;
         }
 
         .cta-buttons {
@@ -422,14 +496,15 @@
 
         /* Responsive */
         @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 40px;
+            .hero-line-1,
+            .hero-line-2 {
+                font-size: 36px;
             }
-
-            .hero .subtitle {
+        
+            .hero-line-3 {
                 font-size: 18px;
             }
-
+        
             .vision-statement {
                 font-size: 32px;
             }
@@ -497,9 +572,12 @@
         <!-- Hero -->
         <section class="hero">
             <div class="container">
-                <h1>The proof-of-human layer<br>for the age of AI</h1>
-                <p class="subtitle">Verify every digital action came from a real human</p>
-                <p class="meta">Reconsider AI</p>
+                <div class="hero-lines">
+                    <p class="hero-line hero-line-1">The proof-of-human layer</p>
+                    <p class="hero-line hero-line-2">for the age of AI</p>
+                    <p class="hero-line hero-line-3">Verify every digital action came from a real human</p>
+                    <p class="hero-line hero-line-4">Reconsider AI</p>
+                </div>
             </div>
         </section>
 
@@ -776,7 +854,7 @@
                         <ul>
                             <li>Public proof-of-human ledger</li>
                             <li>Ecosystem partnerships</li>
-                            <li>Standardization work</li>
+                            <li>Standardization work+v1 release</li>
                         </ul>
                     </div>
                 </div>
@@ -793,7 +871,7 @@
                         <img src="https://media.licdn.com/dms/image/v2/D4D03AQGQyEx2v7xZ1A/profile-displayphoto-scale_200_200/B4DZe8Xs8ZGUAY-/0/1751212023163?e=1764806400&v=beta&t=9dO__EHoJ-OU8hCrLZL2EeTosMgxcEsmPM_zDl0Vobg" alt="Ruzgar Zere" class="team-image">
                         <h4>Ruzgar Zere</h4>
                         <p><strong>Product + Execution</strong><br><br>
-                        Built and scaled LeadShark to 1000+ b2b users as a solo operator. Obsessed with automation, momentum, inbound-lead generation, solving user problems, and product.</p>
+                        Built and scaled LeadShark to 1000+ b2b users as a solo operator. Obsessed with automation, momentum, solving user problems, and building products.</p>
                     </div>
                     <div class="solution-item">
                         <img src="https://media.licdn.com/dms/image/v2/D4E03AQGUkThJODtMuQ/profile-displayphoto-scale_100_100/B4EZppX148GcAc-/0/1762704449810?e=1764806400&v=beta&t=mcmST914K4Hf0ONYvlfiF9rPmT28P1jj5WQXXKHoPsk" alt="Saad Bashir" class="team-image">
@@ -809,7 +887,10 @@
         <section>
             <div class="container">
                 <h2><i class="ph ph-lightbulb section-icon" aria-hidden="true"></i>Vision</h2>
-                <p class="vision-statement">Every digital action should carry a verifiable proof-of-human.<br><br>Reconsider AI becomes the trust kernel of the post-AI web.</p>
+                <div class="vision-statement">
+                    <p class="vision-main">Every digital action should carry a verifiable proof-of-human.</p>
+                    <p class="vision-sub">Reconsider AI becomes the trust kernel of the post-AI web.</p>
+                </div>
             </div>
         </section>
 
@@ -817,13 +898,11 @@
         <section class="cta">
             <div class="container">
                 <h3>Next Steps</h3>
-                <p style="color: var(--text-dim); margin-bottom: 32px;">Build → Test → Open → Standardize</p>
-                <ul style="list-style: none; margin-bottom: 48px;">
-                    <li style="padding: 8px 0; color: var(--text-dim);">Finish v1 proof-of-human API</li>
-                    <li style="padding: 8px 0; color: var(--text-dim);">5–10 early integrations</li>
-                    <li style="padding: 8px 0; color: var(--text-dim);">Publish open proof schema</li>
-                    <li style="padding: 8px 0; color: var(--text-dim);">Public alpha of the log</li>
-                    <li style="padding: 8px 0; color: var(--text-dim);">Raise seed (if needed)</li>
+                <p class="cta-meta">Build → Test → Open → Standardize</p>
+                <ul class="cta-list">
+                    <li>Finish v1 proof-of-human API</li>
+                    <li>Publish open proof schema</li>
+                    <li>Public alpha of the ledger</li>
                 </ul>
                 <div class="cta-buttons">
                     <a href="mailto:team@reconsider.ai" class="btn btn-primary">Get in Touch</a>
