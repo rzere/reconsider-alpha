@@ -73,6 +73,16 @@
             color: var(--text-dim);
             text-transform: lowercase;
         }
+        
+        .logo a {
+            color: inherit;
+            text-decoration: none;
+            transition: opacity 0.2s ease;
+        }
+        
+        .logo a:hover {
+            opacity: 0.7;
+        }
 
         .logo-symbol {
             font-size: 20px;
@@ -364,6 +374,16 @@
             text-transform: uppercase;
             letter-spacing: 0.15em;
         }
+        
+        footer a {
+            color: inherit;
+            text-decoration: none;
+            transition: opacity 0.2s ease;
+        }
+        
+        footer a:hover {
+            opacity: 0.7;
+        }
 
         /* Competitive Table */
         .competitive-table {
@@ -466,7 +486,9 @@
     <header>
         <div class="container">
             <div class="logo">
-                <i class="ph ph-question-mark logo-symbol" aria-hidden="true"></i>Reconsider AI
+                <a href="https://reconsider.ai">
+                    <i class="ph ph-question-mark logo-symbol" aria-hidden="true"></i>Reconsider AI
+                </a>
             </div>
         </div>
     </header>
@@ -714,9 +736,15 @@
                         <h4>Gov/compliance integrations</h4>
                         <p>Premium add-ons</p>
                     </div>
-    </div>
-
-                <p style="margin-top: 32px; text-align: center; color: var(--text-dim);">Low costs → 80–90% gross margin<br>Near-zero churn → protocol lock-in</p>
+                    <div class="solution-item">
+                        <h4>Low costs</h4>
+                        <p>80–90% gross margin</p>
+                    </div>
+                    <div class="solution-item">
+                        <h4>Near-zero churn</h4>
+                        <p>Protocol lock-in</p>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -728,7 +756,7 @@
 
                 <div class="timeline">
                     <div class="timeline-item">
-                        <h4>Q1–Q2 2025</h4>
+                        <h4>Q1–Q2 2026</h4>
                         <ul>
                             <li>Human-proof API beta</li>
                             <li>Partner integrations</li>
@@ -736,7 +764,7 @@
                         </ul>
                     </div>
                     <div class="timeline-item">
-                        <h4>Q3 2025</h4>
+                        <h4>Q3 2026</h4>
                         <ul>
                             <li>Multi-modal verification</li>
                             <li>SDKs</li>
@@ -744,7 +772,7 @@
                         </ul>
                     </div>
                     <div class="timeline-item">
-                        <h4>Q4 2025</h4>
+                        <h4>Q4 2026</h4>
                         <ul>
                             <li>Public proof-of-human ledger</li>
                             <li>Ecosystem partnerships</li>
@@ -765,13 +793,13 @@
                         <img src="https://media.licdn.com/dms/image/v2/D4D03AQGQyEx2v7xZ1A/profile-displayphoto-scale_200_200/B4DZe8Xs8ZGUAY-/0/1751212023163?e=1764806400&v=beta&t=9dO__EHoJ-OU8hCrLZL2EeTosMgxcEsmPM_zDl0Vobg" alt="Ruzgar Zere" class="team-image">
                         <h4>Ruzgar Zere</h4>
                         <p><strong>Product + Execution</strong><br><br>
-                        Built and scaled LeadShark, solo operator, shipped 100+ features. Obsessed with automation, product velocity, inbound distribution.</p>
+                        Built and scaled LeadShark to 1000+ b2b users as a solo operator. Obsessed with automation, rapidproduct velocity, inbound-lead generation.</p>
                     </div>
                     <div class="solution-item">
                         <img src="https://media.licdn.com/dms/image/v2/D4E03AQGUkThJODtMuQ/profile-displayphoto-scale_100_100/B4EZppX148GcAc-/0/1762704449810?e=1764806400&v=beta&t=mcmST914K4Hf0ONYvlfiF9rPmT28P1jj5WQXXKHoPsk" alt="Saad Bashir" class="team-image">
                         <h4>Saad Bashir</h4>
                         <p><strong>AI Governance + Standards</strong><br><br>
-                        Advisor to top AI startups. Expert in NIST AI RMF, ISO 42001, safety, risk & compliance. Builds the trust + governance backbone.</p>
+                        Former CTO of City of Seattle with 20+ years transforming operations. Advises enterprises and startups on AI governance frameworks.</p>
                     </div>
                 </div>
             </div>
@@ -806,7 +834,7 @@
 
     <footer>
         <div class="container">
-            Reconsider AI © 2025
+            <a href="https://reconsider.ai">Reconsider AI</a> © 2025
         </div>
     </footer>
 </body>
