@@ -459,6 +459,21 @@
             opacity: 0.7;
         }
 
+        .project-network {
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px 14px;
+            letter-spacing: 0.08em;
+            text-transform: none;
+        }
+
+        .project-network::before {
+            content: "Related projects:";
+            opacity: 0.7;
+        }
+
         /* Competitive Table */
         .competitive-table {
             margin: 48px 0;
@@ -913,7 +928,16 @@
 
     <footer>
         <div class="container">
-            <a href="https://reconsider.ai">Reconsider AI</a> © 2025
+            <div><a href="https://reconsider.ai">Reconsider AI</a> © 2025</div>
+            <nav class="project-network" aria-label="Related projects">
+                <a href="https://leadshark.io/">LeadShark</a>
+                <a href="https://apex.new/">Apex</a>
+                <a href="https://leads.sh/">Leads.sh</a>
+                <a href="https://braindesign.ai/">Brain Design</a>
+                <a href="https://loadouts.ai/">Loadouts</a>
+                <a href="https://mcpexplorer.com/">MCP Explorer</a>
+                <a href="https://vibeinbound.com/">VibeInbound</a>
+            </nav>
         </div>
     </footer>
 </body>
